@@ -3,91 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Camera: Slim Design</title>
+    <title>Pro Camera Stable</title>
     <style>
-        :root { --blur: blur(35px); --glass: rgba(0, 0, 0, 0.5); --accent: #FFCC00; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
+        :root { --strong-blur: blur(40px); --glass: rgba(0, 0, 0, 0.6); --accent: #FFCC00; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: -apple-system, sans-serif; overflow: hidden; touch-action: none; }
         
-        #video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; }
+        #video { width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 1; }
 
-        /* Kompakte Top UI */
+        /* Top Bar */
         .top-ui {
-            position: absolute; top: 25px; width: 90%; z-index: 10;
+            position: absolute; top: 30px; width: 88%; z-index: 10;
             display: flex; justify-content: space-between; align-items: center; left: 50%; transform: translateX(-50%);
         }
 
-        /* Schmaleres Bedienfeld (Slim Design) */
-        .bottom-glass-layer {
-            position: absolute; bottom: 0; width: 100%; height: 260px;
-            background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
-            z-index: 10; display: flex; flex-direction: column; align-items: center;
+        /* Bottom Control Panel */
+        .bottom-area {
+            position: absolute; bottom: 0; width: 100%; height: 280px;
+            background: var(--glass); backdrop-filter: var(--strong-blur); -webkit-backdrop-filter: var(--strong-blur);
+            z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
+            border-top: 1px solid rgba(255,255,255,0.1);
         }
 
-        .zoom-row { margin-top: 15px; display: flex; gap: 10px; }
-        .zoom-btn { background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; font-size: 11px; cursor: pointer; border: 1px solid transparent; }
-        .zoom-btn.active { border-color: var(--accent); color: var(--accent); }
+        .zoom-container { display: flex; gap: 12px; }
+        .zoom-btn { background: rgba(255,255,255,0.15); border: 1px solid transparent; padding: 6px 14px; border-radius: 20px; font-size: 12px; color: white; }
+        .zoom-btn.active { border-color: var(--accent); color: var(--accent); font-weight: bold; }
 
-        .mode-selector { margin-top: 25px; display: flex; gap: 30px; font-size: 11px; font-weight: bold; letter-spacing: 1px; }
-        .mode-selector span { opacity: 0.5; cursor: pointer; transition: 0.3s; }
-        .mode-selector .active { opacity: 1; color: white; }
+        .mode-switch { display: flex; gap: 30px; font-size: 12px; font-weight: 800; letter-spacing: 1px; }
+        .mode-switch span { opacity: 0.4; transition: 0.2s; cursor: pointer; }
+        .mode-switch span.active { opacity: 1; border-bottom: 2px solid white; padding-bottom: 4px; }
 
-        .shutter-row { margin-top: 25px; width: 85%; display: flex; justify-content: space-around; align-items: center; }
-        .shutter { width: 70px; height: 70px; background: white; border-radius: 50%; border: 5px solid rgba(255,255,255,0.2); cursor: pointer; position: relative; }
-        .shutter.recording::after { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 28px; height: 28px; background: #ff3b30; border-radius: 5px; }
+        .shutter-group { width: 90%; display: flex; justify-content: space-around; align-items: center; }
+        .shutter-btn { width: 72px; height: 72px; background: white; border-radius: 50%; border: 5px solid rgba(255,255,255,0.3); }
+        .shutter-btn.recording { background: #ff3b30; border-radius: 15px; animation: pulse 1.2s infinite; }
 
-        .icon-btn { width: 45px; height: 45px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        svg { fill: white; width: 22px; height: 22px; }
-        
-        #rec-timer { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); color: #ff3b30; font-weight: bold; font-size: 14px; display: none; z-index: 20; }
+        .btn-circle { width: 48px; height: 48px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        svg { fill: white; width: 24px; height: 24px; }
+
+        #timer { color: #ff3b30; font-weight: bold; font-size: 18px; position: absolute; top: -35px; display: none; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-<div id="rec-timer">00:00</div>
 <video id="video" autoplay playsinline muted></video>
 
 <div class="top-ui">
-    <div class="icon-btn" onclick="toggleFlash()" id="flash-btn">
-        <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
-    </div>
-    <div style="font-size: 12px; font-weight: bold; letter-spacing: 1px;"><span style="color:var(--accent)">UHD</span> 30</div>
-    <div class="icon-btn" onclick="flip()">
-        <svg viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.41 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.59 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>
-    </div>
+    <div class="btn-circle" onclick="toggleFlash()"><svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg></div>
+    <div style="font-size: 12px; font-weight: bold;">UHD <span style="color:var(--accent)">30</span></div>
+    <div class="btn-circle" onclick="flip()"><svg viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.41 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.59 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg></div>
 </div>
 
-<div class="bottom-glass-layer">
-    <div class="zoom-row">
-        <div class="zoom-btn" onclick="setZ(1, this)">.5</div>
-        <div class="zoom-btn active" onclick="setZ(2, this)">1x</div>
-        <div class="zoom-btn" onclick="setZ(4, this)">2</div>
+<div class="bottom-area">
+    <div class="zoom-container">
+        <button class="zoom-btn" onclick="applyZ(1, this)">.5</button>
+        <button class="zoom-btn active" onclick="applyZ(2, this)">1x</button>
+        <button class="zoom-btn" onclick="applyZ(4, this)">2</button>
     </div>
 
-    <div class="mode-selector">
-        <span id="m-photo" class="active" onclick="setMode('photo')">FOTO</span>
-        <span id="m-video" onclick="setMode('video')">VIDEO</span>
+    <div class="mode-switch">
+        <span id="m-photo" class="active" onclick="setM('photo')">FOTO</span>
+        <span id="m-video" onclick="setM('video')">VIDEO</span>
     </div>
 
-    <div class="shutter-row">
-        <div class="icon-btn" style="background: rgba(255,59,48,0.2);"><div style="width:12px; height:12px; background:#ff3b30; border-radius:50%;"></div></div>
-        <div id="shutter" class="shutter"></div>
-        <div class="icon-btn" onclick="document.getElementById('canvas').click()">
-            <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-        </div>
+    <div class="shutter-group">
+        <div class="btn-circle"><div style="width:12px; height:12px; background:#ff3b30; border-radius:50%;"></div></div>
+        <div id="shutter" class="shutter-btn"><div id="timer">00:00</div></div>
+        <div class="btn-circle" onclick="window.location.reload()"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>
     </div>
 </div>
 
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-    const v = document.getElementById('video'), s = document.getElementById('shutter'), timer = document.getElementById('rec-timer');
-    let stream, recorder, chunks = [], mode = 'photo', isFront = false, flashOn = false;
+    const v = document.getElementById('video'), s = document.getElementById('shutter'), tDisp = document.getElementById('timer');
+    let stream, recorder, chunks = [], mode = 'photo', isFront = false, flash = false;
 
-    async function startCam() {
+    async function start() {
         if (stream) stream.getTracks().forEach(t => t.stop());
         try {
             stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: isFront ? "user" : "environment", width: { ideal: 3840 }, height: { ideal: 2160 } },
+                video: { facingMode: isFront ? "user" : "environment", width: 3840, height: 2160 },
                 audio: true
             });
             v.srcObject = stream;
@@ -97,67 +92,68 @@
         }
     }
 
-    function setMode(m) {
+    function setM(m) {
         mode = m;
-        document.getElementById('m-photo').classList.toggle('active', m === 'photo');
-        document.getElementById('m-video').classList.toggle('active', m === 'video');
+        document.getElementById('m-photo').className = m === 'photo' ? 'active' : '';
+        document.getElementById('m-video').className = m === 'video' ? 'active' : '';
     }
 
-    async function setZ(val, el) {
+    async function applyZ(val, btn) {
         const track = stream.getVideoTracks()[0];
         try { await track.applyConstraints({ advanced: [{ zoom: val }] }); }
         catch(e) { v.style.transform = `scale(${val})`; }
         document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
+        btn.classList.add('active');
     }
 
     async function toggleFlash() {
         const track = stream.getVideoTracks()[0];
-        flashOn = !flashOn;
-        try {
-            await track.applyConstraints({ advanced: [{ torch: flashOn }] });
-            document.getElementById('flash-btn').querySelector('svg').style.fill = flashOn ? "#FFCC00" : "white";
-        } catch(e) { alert("Blitz nicht verfügbar"); }
+        flash = !flash;
+        try { await track.applyConstraints({ advanced: [{ torch: flash }] }); } catch(e) {}
     }
 
-    s.onclick = () => {
+    s.onclick = async () => {
         if (mode === 'photo') {
-            const c = document.getElementById('canvas'), ctx = c.getContext('2d');
+            const c = document.getElementById('canvas');
             c.width = v.videoWidth; c.height = v.videoHeight;
-            ctx.drawImage(v, 0, 0);
-            const a = document.createElement('a'); 
-            a.href = c.toDataURL('image/jpeg', 1.0);
-            a.download = `IMG_${Date.now()}.jpg`; 
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            c.getContext('2d').drawImage(v, 0, 0);
+            const link = document.createElement('a');
+            link.download = `IMG_${Date.now()}.jpg`;
+            link.href = c.toDataURL('image/jpeg', 1.0);
+            link.click();
         } else {
             if (recorder && recorder.state === "recording") {
-                recorder.stop(); s.classList.remove('recording');
-                timer.style.display = 'none';
+                recorder.stop();
+                s.classList.remove('recording');
+                tDisp.style.display = 'none';
             } else {
                 chunks = [];
-                recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 50000000 });
+                recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 25000000 });
                 recorder.ondataavailable = e => chunks.push(e.data);
                 recorder.onstop = () => {
                     const blob = new Blob(chunks, { type: 'video/mp4' });
-                    const a = document.createElement('a'); 
-                    a.href = URL.createObjectURL(blob);
-                    a.download = `VID_${Date.now()}.mp4`; 
-                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    const link = document.createElement('a');
+                    link.download = `VID_${Date.now()}.mp4`;
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
                 };
-                recorder.start(); s.classList.add('recording');
-                timer.style.display = 'block';
-                let start = Date.now();
-                const timerInt = setInterval(() => {
-                    if (recorder.state !== "recording") { clearInterval(timerInt); return; }
-                    let d = Math.floor((Date.now() - start) / 1000);
-                    timer.innerText = `${String(Math.floor(d/60)).padStart(2,'0')}:${String(d%60).padStart(2,'0')}`;
+                recorder.start();
+                s.classList.add('recording');
+                tDisp.style.display = 'block';
+                let startT = Date.now();
+                const inv = setInterval(() => {
+                    if (recorder.state !== "recording") { clearInterval(inv); return; }
+                    let d = Math.floor((Date.now() - startT) / 1000);
+                    tDisp.innerText = `${String(Math.floor(d/60)).padStart(2,'0')}:${String(d%60).padStart(2,'0')}`;
                 }, 1000);
             }
         }
     };
 
-    function flip() { isFront = !isFront; startCam(); }
-    startCam(); // Startet sofort
+    function flip() { isFront = !isFront; start(); }
+    
+    // Autostart
+    window.onload = start;
 </script>
 </body>
 </html>
