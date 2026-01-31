@@ -3,153 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Camera: Pinch-to-Zoom</title>
+    <title>Pro Camera UHD</title>
     <style>
-        :root { --blur: blur(10px); --glass: rgba(0, 0, 0, 0.4); --accent: #FFCC00; }
+        :root { --blur: blur(40px); --glass: rgba(0, 0, 0, 0.45); --accent: #FFCC00; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
-        
-        #video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; }
+        #video { width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 1; }
 
-        /* Zoom Anzeige während des Pinchens */
-        #zoom-display {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 20px;
-            font-weight: bold; font-size: 20px; color: var(--accent);
-            opacity: 0; transition: opacity 0.3s; z-index: 20; pointer-events: none;
-        }
-
+        /* Top UI mit UHD Anzeige */
         .top-ui {
-            position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
-            width: 90%; z-index: 10; display: flex; justify-content: space-between; align-items: center;
+            position: absolute; top: 40px; width: 85%; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center; left: 50%; transform: translateX(-50%);
         }
+        .pill { background: rgba(255,255,255,0.15); backdrop-filter: blur(20px); padding: 8px 18px; border-radius: 30px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .uhd-tag { color: var(--accent); }
 
-        .bottom-panel {
-            position: absolute; bottom: 0; width: 100%; height: 240px;
-            background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
-            z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border-top: 1px solid rgba(255,255,255,0.15);
+        /* Das Original-Panel */
+        .bottom-glass-layer {
+            position: absolute; bottom: 0; width: 100%; height: 320px;
+            background: var(--glass); backdrop-filter: var(--strong-blur); -webkit-backdrop-filter: var(--blur);
+            border-top: 1px solid rgba(255,255,255,0.1); z-index: 10;
+            display: flex; flex-direction: column; align-items: center; transition: all 0.3s;
         }
 
         @media (orientation: landscape) {
-            .bottom-panel { bottom: 0; right: 0; left: auto; width: 180px; height: 100%; border-top: none; border-left: 1px solid rgba(255,255,255,0.15); }
-            .ui-row { flex-direction: column !important; }
+            .bottom-glass-layer { bottom: 0; right: 0; left: auto; width: 220px; height: 100%; border-top: none; border-left: 1px solid rgba(255,255,255,0.1); }
+            .shutter-row { flex-direction: column !important; height: 60% !important; }
         }
 
-        .pill { background: rgba(255,255,255,0.15); padding: 8px 18px; border-radius: 30px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .zoom-info { margin-bottom: 15px; font-size: 11px; opacity: 0.8; letter-spacing: 1px; }
+        .zoom-row { margin-top: 25px; display: flex; gap: 15px; }
+        .zoom-btn { background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid transparent; }
+        .zoom-btn.active { border-color: var(--accent); color: var(--accent); }
 
-        .shutter { 
-            width: 70px; height: 70px; background: white; border-radius: 50%; 
-            border: 5px solid rgba(255,255,255,0.3); cursor: pointer; transition: 0.2s;
-        }
-        .shutter.recording { background: #ff3b30; border-radius: 15px; animation: pulse 1s infinite; }
+        .mode-selector { margin-top: 35px; display: flex; gap: 25px; font-size: 11px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+        .mode-selector span { opacity: 0.4; cursor: pointer; transition: 0.2s; }
+        .mode-selector .active { opacity: 1; border-bottom: 2px solid white; padding-bottom: 3px; }
 
-        #timer { color: #ff3b30; font-weight: bold; margin-bottom: 10px; display: none; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .shutter-row { margin-top: 40px; width: 85%; display: flex; justify-content: space-around; align-items: center; }
+        .shutter { width: 75px; height: 75px; background: white; border-radius: 50%; border: 6px solid rgba(255,255,255,0.25); cursor: pointer; position: relative; }
+        .shutter.recording::after { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; background: #ff3b30; border-radius: 6px; }
+        
+        #timer { color: #ff3b30; font-weight: bold; position: absolute; top: -30px; font-variant-numeric: tabular-nums; display: none; }
+        .rec-dot { width: 14px; height: 14px; background: #ff3b30; border-radius: 50%; }
+
+        #zoom-toast { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 20px; font-weight: bold; font-size: 24px; opacity: 0; transition: opacity 0.3s; z-index: 20; color: var(--accent); pointer-events: none; }
     </style>
 </head>
 <body>
 
-<div id="zoom-display">1.0x</div>
+<div id="zoom-toast">1.0x</div>
 <video id="video" autoplay playsinline muted></video>
 
 <div class="top-ui">
-    <div class="pill" id="flash-btn" onclick="toggleFlash()">FLASH OFF</div>
-    <div id="timer">00:00</div>
-    <div class="pill" onclick="flip()">FLIP</div>
+    <div class="pill" id="flash-btn" onclick="toggleFlash()">⚡ BLITZ</div>
+    <div class="pill"><span class="uhd-tag">UHD</span> 30</div>
+    <div class="pill">HDR</div>
 </div>
 
-<div class="bottom-panel">
-    <div id="timer-ui" style="display:none; color:red; font-weight:bold; margin-bottom:10px;">00:00</div>
-    <div class="zoom-info">PINCH TO ZOOM</div>
-    
-    <div class="ui-row" style="display:flex; gap: 25px; align-items:center;">
-        <span id="m-photo" style="color:var(--accent); font-weight:bold;" onclick="setMode('photo')">FOTO</span>
-        <div id="shutter" class="shutter"></div>
-        <span id="m-video" style="opacity:0.6; font-weight:bold;" onclick="setMode('video')">VIDEO</span>
+<div class="bottom-glass-layer">
+    <div class="zoom-row">
+        <div class="zoom-btn" onclick="setZ(1, this)">.5</div>
+        <div class="zoom-btn active" onclick="setZ(2, this)">1x</div>
+        <div class="zoom-btn" onclick="setZ(4, this)">2</div>
+    </div>
+
+    <div class="mode-selector">
+        <span class="active" id="m-photo" onclick="setMode('photo')">Foto</span>
+        <span id="m-video" onclick="setMode('video')">Video</span>
+    </div>
+
+    <div class="shutter-row">
+        <div class="icon-btn" style="width:50px; height:50px; background:rgba(255,255,255,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center;"><div class="rec-dot"></div></div>
+        <div id="shutter" class="shutter"><div id="timer">00:00</div></div>
+        <div class="icon-btn" onclick="flip()" style="width:50px; height:50px; background:rgba(255,255,255,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+            <svg viewBox="0 0 24 24" width="24" fill="white"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.41 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.59 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>
+        </div>
     </div>
 </div>
 
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-    const v = document.getElementById('video'), s = document.getElementById('shutter');
-    const zoomDisp = document.getElementById('zoom-display');
+    const v = document.getElementById('video'), s = document.getElementById('shutter'), timerDisp = document.getElementById('timer');
+    const toast = document.getElementById('zoom-toast');
     let stream, recorder, chunks = [], mode = 'photo', isFront = false, flashOn = false;
-    
-    let currentZoom = 1;
-    let initialDist = 0;
-    let zoomCaps = { min: 1, max: 10 };
+    let zoomVal = 1, initialDist = 0;
 
     async function init() {
         if (stream) stream.getTracks().forEach(t => t.stop());
         try {
+            // UHD Konfiguration
             stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: isFront ? "user" : "environment", width: { ideal: 3840 } },
-                audio: { echoCancellation: false }
+                video: { 
+                    facingMode: isFront ? "user" : "environment", 
+                    width: { ideal: 3840 }, 
+                    height: { ideal: 2160 },
+                    frameRate: { ideal: 30 }
+                },
+                audio: { echoCancellation: false, sampleRate: 48000, channelCount: 2 }
             });
             v.srcObject = stream;
-            
-            const track = stream.getVideoTracks()[0];
-            setTimeout(() => {
-                const caps = track.getCapabilities();
-                if (caps.zoom) {
-                    zoomCaps.min = caps.zoom.min;
-                    zoomCaps.max = caps.zoom.max;
-                }
-            }, 1000);
-        } catch (e) { alert("Kamera-Fehler: " + e.message); }
+        } catch(e) { 
+            // Fallback auf Full HD falls UHD nicht unterstützt wird
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            v.srcObject = stream;
+        }
     }
 
-    // --- Pinch-to-Zoom Logik ---
-    window.addEventListener('touchstart', e => {
-        if (e.touches.length === 2) {
-            initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-        }
-    });
-
-    window.addEventListener('touchmove', async e => {
-        if (e.touches.length === 2 && initialDist > 0) {
+    // --- Pinch-to-Zoom ---
+    window.addEventListener('touchstart', e => { if(e.touches.length === 2) initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); });
+    window.addEventListener('touchmove', e => {
+        if(e.touches.length === 2 && initialDist > 0) {
             const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            const delta = (dist - initialDist) / 100; // Sensibilität
-            
-            currentZoom = Math.min(Math.max(currentZoom + delta, zoomCaps.min), zoomCaps.max);
+            zoomVal = Math.min(Math.max(zoomVal + (dist - initialDist) / 150, 1), 10);
             initialDist = dist;
-
-            applyZoomHardware(currentZoom);
-            
-            // Anzeige einblenden
-            zoomDisp.innerText = currentZoom.toFixed(1) + "x";
-            zoomDisp.style.opacity = "1";
-            clearTimeout(window.zoomFade);
-            window.zoomFade = setTimeout(() => zoomDisp.style.opacity = "0", 1000);
+            applyZ();
         }
     });
 
-    async function applyZoomHardware(val) {
+    async function applyZ() {
         const track = stream.getVideoTracks()[0];
-        try {
-            await track.applyConstraints({ advanced: [{ zoom: val }] });
-        } catch (e) {
-            // CSS Fallback für Browser ohne direkten Hardware-Zoom Support
-            v.style.transform = `scale(${val})`;
-        }
+        try { await track.applyConstraints({ advanced: [{ zoom: zoomVal }] }); } 
+        catch(e) { v.style.transform = `scale(${zoomVal})`; }
+        toast.innerText = zoomVal.toFixed(1) + "x"; toast.style.opacity = "1";
+        clearTimeout(window.zFade); window.zFade = setTimeout(() => toast.style.opacity = "0", 800);
+    }
+
+    function setZ(val, el) { 
+        zoomVal = val; applyZ(); 
+        document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
     }
 
     async function toggleFlash() {
-        if (isFront) return alert("Blitz nur bei Rückkamera möglich");
         const track = stream.getVideoTracks()[0];
         flashOn = !flashOn;
-        try {
-            await track.applyConstraints({ advanced: [{ torch: flashOn }] });
-            document.getElementById('flash-btn').innerText = flashOn ? "FLASH ON" : "FLASH OFF";
-        } catch (e) { alert("Blitz wird nicht unterstützt."); }
+        try { await track.applyConstraints({ advanced: [{ torch: flashOn }] }); 
+              document.getElementById('flash-btn').style.color = flashOn ? var(--accent) : "white";
+        } catch(e) { alert("Blitz nicht verfügbar."); }
     }
 
     function setMode(m) {
         mode = m;
-        document.getElementById('m-photo').style.opacity = m === 'photo' ? "1" : "0.5";
-        document.getElementById('m-video').style.opacity = m === 'video' ? "1" : "0.5";
+        document.getElementById('m-photo').classList.toggle('active', m === 'photo');
+        document.getElementById('m-video').classList.toggle('active', m === 'video');
     }
 
     s.onclick = () => {
@@ -158,20 +154,32 @@
             c.width = v.videoWidth; c.height = v.videoHeight;
             ctx.drawImage(v, 0, 0);
             const a = document.createElement('a'); a.href = c.toDataURL('image/jpeg', 1.0);
-            a.download = `IMG_${Date.now()}.jpg`; a.click();
+            a.download = `IMG_UHD_${Date.now()}.jpg`; a.click();
         } else {
             if (recorder && recorder.state === "recording") {
-                recorder.stop(); s.classList.remove('recording');
+                recorder.stop(); s.classList.remove('recording'); timerDisp.style.display = "none";
             } else {
                 chunks = [];
-                recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus', audioBitsPerSecond: 320000 });
+                // Maximale Bitrate für UHD (100 Mbps)
+                recorder = new MediaRecorder(stream, { 
+                    mimeType: 'video/webm;codecs=vp9,opus', 
+                    videoBitsPerSecond: 100000000, 
+                    audioBitsPerSecond: 320000 
+                });
                 recorder.ondataavailable = e => chunks.push(e.data);
                 recorder.onstop = () => {
                     const blob = new Blob(chunks, { type: 'video/mp4' });
                     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-                    a.download = `VID_${Date.now()}.mp4`; a.click();
+                    a.download = `VID_UHD_${Date.now()}.mp4`; a.click();
                 };
                 recorder.start(); s.classList.add('recording');
+                timerDisp.style.display = "block";
+                let start = Date.now();
+                const timerInt = setInterval(() => {
+                    if (recorder.state !== "recording") { clearInterval(timerInt); return; }
+                    let d = Math.floor((Date.now() - start) / 1000);
+                    timerDisp.innerText = `${String(Math.floor(d/60)).padStart(2,'0')}:${String(d%60).padStart(2,'0')}`;
+                }, 1000);
             }
         }
     };
