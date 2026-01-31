@@ -6,7 +6,7 @@
     <title>Pro Camera App</title>
     <style>
         :root {
-            --blur-bg: rgba(20, 20, 20, 0.4);
+            --blur-bg: rgba(30, 30, 30, 0.5);
             --accent: #FFD700;
         }
 
@@ -14,231 +14,208 @@
             margin: 0; padding: 0;
             width: 100%; height: 100%;
             background: #000; color: white;
-            font-family: 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow: hidden;
         }
 
-        .camera-container {
+        .camera-view {
             position: relative;
             width: 100%; height: 100%;
-            display: flex; justify-content: center;
+            display: flex; justify-content: center; overflow: hidden;
         }
 
-        /* Video Feed */
         #video {
             width: 100%; height: 100%;
             object-fit: cover;
-            transition: transform 0.3s ease-out;
+            transition: transform 0.3s ease;
         }
 
-        /* Top Bar - Blitz & HDR */
+        /* Top Bar */
         .top-bar {
-            position: absolute; top: 40px;
+            position: absolute; top: 30px;
             display: flex; align-items: center; justify-content: space-between;
-            width: 85%; padding: 10px 20px;
+            width: 80%; padding: 12px 24px;
             background: var(--blur-bg);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-radius: 50px; border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 40px; border: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
         }
 
-        /* Unterer Bereich mit großem Blur-Panel */
-        .bottom-panel {
+        /* Unterer großer Blur-Layer */
+        .bottom-ui {
             position: absolute; bottom: 0;
-            width: 100%; height: 300px;
-            background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px);
+            width: 100%; height: 280px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
             display: flex; flex-direction: column; align-items: center;
             border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
         }
 
-        /* Zoom-Steuerung */
-        .zoom-controls {
+        .zoom-capsule {
             margin-top: 20px;
             display: flex; gap: 20px;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 18px; border-radius: 30px;
-            font-size: 13px; font-weight: bold;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 20px; border-radius: 30px;
+            font-size: 13px; font-weight: 600;
         }
-        .zoom-controls span { cursor: pointer; opacity: 0.5; transition: 0.2s; }
-        .zoom-controls span.active { opacity: 1; color: var(--accent); }
+        .zoom-capsule span { cursor: pointer; opacity: 0.6; }
+        .zoom-capsule span.active { opacity: 1; color: var(--accent); }
 
-        /* Modus-Leiste */
-        .mode-selector {
+        .modes {
+            margin-top: 25px;
+            display: flex; gap: 20px;
+            font-size: 12px; font-weight: bold; letter-spacing: 1px;
+        }
+        .modes span { cursor: pointer; opacity: 0.5; transition: 0.3s; }
+        .modes span.active { opacity: 1; color: var(--accent); }
+
+        .actions {
             margin-top: 30px;
-            display: flex; gap: 25px;
-            font-size: 11px; font-weight: bold;
-            letter-spacing: 1.5px;
-        }
-        .mode-selector span { cursor: pointer; opacity: 0.4; }
-        .mode-selector span.active { opacity: 1; color: var(--accent); }
-
-        /* Haupt-Buttons */
-        .action-bar {
-            margin-top: 35px;
-            width: 80%;
+            width: 85%;
             display: flex; align-items: center; justify-content: space-around;
         }
 
-        .shutter-btn {
-            width: 80px; height: 80px;
+        .shutter {
+            width: 75px; height: 75px;
             background: white; border-radius: 50%;
-            border: 6px solid rgba(255, 255, 255, 0.2);
-            cursor: pointer; transition: 0.2s;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
         }
-        .shutter-btn:active { transform: scale(0.9); }
-        .shutter-btn.recording { background: #ff3b30; border-radius: 15px; animation: pulse 1.5s infinite; }
+        .shutter.recording { background: #ff4444; border-radius: 12px; animation: pulse 1.5s infinite; }
 
-        .icon-btn {
-            width: 50px; height: 50px;
+        .btn-circle {
+            width: 48px; height: 48px;
             background: rgba(255,255,255,0.1);
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer;
         }
 
-        svg { fill: white; width: 26px; height: 26px; }
+        svg { fill: white; width: 24px; height: 24px; }
 
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(255, 59, 48, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
 <body>
 
-<div class="camera-container">
+<div class="camera-view">
     <video id="video" autoplay playsinline muted></video>
-    
+
     <div class="top-bar">
         <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
-        <span style="font-size: 12px; font-weight: bold;">12M • HDR</span>
+        <span style="font-size: 12px;">12M • HDR</span>
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
     </div>
 
-    <div class="bottom-panel">
-        <div class="zoom-controls">
-            <span onclick="applyZoom(1, this)">.5</span>
-            <span class="active" onclick="applyZoom(1.5, this)">1x</span>
-            <span onclick="applyZoom(3, this)">2</span>
+    <div class="bottom-ui">
+        <div class="zoom-capsule">
+            <span onclick="setZoom(1.0, this)">.5</span>
+            <span class="active" onclick="setZoom(1.5, this)">1x</span>
+            <span onclick="setZoom(3.0, this)">2</span>
         </div>
 
-        <div class="mode-selector">
-            <span>FUN</span>
-            <span>PORTRÄT</span>
-            <span id="mode-photo" class="active" onclick="setAppMode('photo')">FOTO</span>
-            <span id="mode-video" onclick="setAppMode('video')">VIDEO</span>
-            <span>MEHR</span>
+        <div class="modes">
+            <span id="m-photo" class="active" onclick="changeMode('photo')">FOTO</span>
+            <span id="m-video" onclick="changeMode('video')">VIDEO</span>
         </div>
 
-        <div class="action-bar">
-            <div class="icon-btn">
+        <div class="actions">
+            <div class="btn-circle">
                 <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
             </div>
 
-            <div id="shutter" class="shutter-btn"></div>
+            <div id="shutterBtn" class="shutter"></div>
 
-            <div class="icon-btn" onclick="switchCamera()">
+            <div class="btn-circle" onclick="flipCam()">
                 <svg viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.41 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.59 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>
             </div>
         </div>
     </div>
 </div>
 
-<canvas id="canvas" style="display:none;"></canvas>
+<canvas id="output" style="display:none;"></canvas>
 
 <script>
-    const video = document.getElementById('video');
-    const shutter = document.getElementById('shutter');
+    const v = document.getElementById('video');
+    const sBtn = document.getElementById('shutterBtn');
     let stream;
-    let isFront = false;
-    let currentMode = 'photo';
-    let recorder;
-    let videoChunks = [];
+    let front = false;
+    let mode = 'photo';
+    let rec;
+    let chunks = [];
 
-    // Kamera Initialisierung
-    async function startApp() {
+    async function start() {
         if (stream) stream.getTracks().forEach(t => t.stop());
         
         const constraints = {
             video: { 
-                facingMode: isFront ? "user" : "environment",
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
+                facingMode: front ? "user" : "environment",
+                width: { ideal: 1280 } 
             },
             audio: true
         };
 
         try {
             stream = await navigator.mediaDevices.getUserMedia(constraints);
-            video.srcObject = stream;
-        } catch (err) {
-            console.error(err);
-            alert("Kamera konnte nicht geladen werden. Bitte stelle sicher, dass du HTTPS nutzt.");
+            v.srcObject = stream;
+            v.play();
+        } catch (e) {
+            alert("Kamera-Fehler: " + e.name + "\nBitte stelle sicher, dass keine andere App die Kamera nutzt.");
         }
     }
 
-    function switchCamera() {
-        isFront = !isFront;
-        startApp();
+    function flipCam() {
+        front = !front;
+        start();
     }
 
-    function applyZoom(scale, el) {
-        video.style.transform = `scale(${scale})`;
-        document.querySelectorAll('.zoom-controls span').forEach(s => s.classList.remove('active'));
+    function setZoom(val, el) {
+        v.style.transform = `scale(${val})`;
+        document.querySelectorAll('.zoom-capsule span').forEach(s => s.classList.remove('active'));
         el.classList.add('active');
     }
 
-    function setAppMode(mode) {
-        currentMode = mode;
-        document.getElementById('mode-photo').classList.toggle('active', mode === 'photo');
-        document.getElementById('mode-video').classList.toggle('active', mode === 'video');
+    function changeMode(m) {
+        mode = m;
+        document.getElementById('m-photo').className = m === 'photo' ? 'active' : '';
+        document.getElementById('m-video').className = m === 'video' ? 'active' : '';
     }
 
-    shutter.onclick = () => {
-        if (currentMode === 'photo') {
-            takePhoto();
+    sBtn.onclick = () => {
+        if (mode === 'photo') {
+            const c = document.getElementById('output');
+            c.width = v.videoWidth; c.height = v.videoHeight;
+            c.getContext('2d').drawImage(v, 0, 0);
+            const a = document.createElement('a');
+            a.href = c.toDataURL('image/jpeg');
+            a.download = `IMG_${Date.now()}.jpg`; a.click();
+            v.style.opacity = "0.5"; setTimeout(() => v.style.opacity = "1", 100);
         } else {
-            toggleVideo();
+            if (rec && rec.state === "recording") {
+                rec.stop();
+                sBtn.classList.remove('recording');
+            } else {
+                chunks = [];
+                rec = new MediaRecorder(stream);
+                rec.ondataavailable = e => chunks.push(e.data);
+                rec.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `VID_${Date.now()}.webm`; a.click();
+                };
+                rec.start();
+                sBtn.classList.add('recording');
+            }
         }
     };
 
-    function takePhoto() {
-        const canvas = document.getElementById('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        
-        const link = document.createElement('a');
-        link.download = `IMG_${Date.now()}.jpg`;
-        link.href = canvas.toDataURL('image/jpeg', 0.9);
-        link.click();
-
-        // Blitz-Animation
-        video.style.opacity = "0.2";
-        setTimeout(() => video.style.opacity = "1", 100);
-    }
-
-    function toggleVideo() {
-        if (recorder && recorder.state === "recording") {
-            recorder.stop();
-            shutter.classList.remove('recording');
-        } else {
-            videoChunks = [];
-            recorder = new MediaRecorder(stream);
-            recorder.ondataavailable = e => videoChunks.push(e.data);
-            recorder.onstop = () => {
-                const blob = new Blob(videoChunks, { type: 'video/mp4' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = `VID_${Date.now()}.mp4`; a.click();
-            };
-            recorder.start();
-            shutter.classList.add('recording');
-        }
-    }
-
-    startApp();
+    start();
 </script>
 </body>
 </html>
