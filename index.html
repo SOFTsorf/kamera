@@ -3,138 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Camera: Ultimate Fix</title>
+    <title>UHD Pro Camera</title>
     <style>
-        :root { --blur: blur(45px); --glass: rgba(0, 0, 0, 0.6); --accent: #FFCC00; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
-        #video { width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 1; background: #000; }
+        :root {
+            --accent: #ff3b30;
+            --bg: #000;
+        }
 
-        .top-ui { position: absolute; top: 30px; width: 90%; z-index: 10; display: flex; justify-content: space-between; left: 50%; transform: translateX(-50%); }
-        .bottom-panel { position: absolute; bottom: 0; width: 100%; height: 260px; background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; border-top: 1px solid rgba(255,255,255,0.1); }
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-        .zoom-row { display: flex; gap: 12px; }
-        .zoom-btn { background: rgba(255,255,255,0.15); border: 1px solid transparent; padding: 6px 14px; border-radius: 20px; font-size: 11px; color: white; }
-        .zoom-btn.active { border-color: var(--accent); color: var(--accent); }
+        /* Video Vorschau */
+        #viewport {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: #111;
+        }
 
-        .mode-sel { display: flex; gap: 30px; font-size: 11px; font-weight: bold; letter-spacing: 1px; }
-        .mode-sel span { opacity: 0.4; }
-        .mode-sel span.active { opacity: 1; border-bottom: 2px solid white; padding-bottom: 4px; }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Füllt den Screen wie eine App */
+        }
 
-        .shutter-row { width: 90%; display: flex; justify-content: space-around; align-items: center; }
-        .shutter { width: 72px; height: 72px; background: white; border-radius: 50%; border: 5px solid rgba(255,255,255,0.2); position: relative; }
-        .shutter.rec { background: #ff3b30; border-radius: 15px; animation: pulse 1s infinite; }
-        
-        /* Die neue Galerie-Vorschau zum Speichern */
-        #preview-thumb { width: 52px; height: 52px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 2px solid white; object-fit: cover; cursor: pointer; display: block; overflow: hidden; }
-        
-        .btn-round { width: 48px; height: 48px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        svg { fill: white; width: 22px; }
-        #timer { color: #ff3b30; font-weight: bold; position: absolute; top: -35px; left: 50%; transform: translateX(-50%); display: none; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        /* Overlay Infos */
+        #info-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        /* Controls Bereich */
+        .controls {
+            height: 160px;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* Aufnahme Button */
+        .record-trigger {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 4px solid #333;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .record-trigger .inner {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: var(--accent);
+            transition: all 0.3s;
+        }
+
+        .recording .inner {
+            border-radius: 10px;
+            transform: scale(0.6);
+        }
+
+        /* Funktions Buttons */
+        .btn-icon {
+            background: #222;
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        #downloadBtn {
+            display: none;
+            background: #4cd964;
+            text-decoration: none;
+            color: white;
+            font-size: 14px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            position: absolute;
+            bottom: 180px;
+        }
     </style>
 </head>
 <body>
 
-<video id="video" autoplay playsinline muted></video>
-
-<div class="top-ui">
-    <div class="btn-round" onclick="toggleFlash()"><svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg></div>
-    <div style="font-size: 12px; font-weight: bold;">UHD <span style="color:var(--accent)">30</span></div>
-    <div class="btn-round" onclick="flip()"><svg viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.41 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.59 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg></div>
-</div>
-
-<div class="bottom-panel">
-    <div class="zoom-row">
-        <div class="zoom-btn" onclick="setZ(1, this)">.5</div>
-        <div class="zoom-btn active" onclick="setZ(2, this)">1x</div>
-        <div class="zoom-btn" onclick="setZ(4, this)">2</div>
+    <div id="viewport">
+        <div id="info-overlay">UHD 30FPS | High-Res Audio</div>
+        <video id="preview" autoplay playsinline muted></video>
+        <a id="downloadBtn" download="UHD_Video.webm">Video Speichern</a>
     </div>
 
-    <div class="mode-sel">
-        <span id="m-photo" class="active" onclick="setMode('photo')">FOTO</span>
-        <span id="m-video" onclick="setMode('video')">VIDEO</span>
-    </div>
-
-    <div class="shutter-row">
-        <div id="preview-container" onclick="saveLastFile()">
-            <img id="preview-thumb" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+    <div class="controls">
+        <button class="btn-icon" id="switchBtn">🔄</button>
+        
+        <div class="record-trigger" id="recordBtn">
+            <div class="inner"></div>
         </div>
-        
-        <div id="shutter" class="shutter"><div id="timer">00:00</div></div>
-        
-        <div class="btn-round" onclick="location.reload()"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.59 20 12c0-4.42-3.58-8-8-8zm-6 8c0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.41 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6z"/></svg></div>
+
+        <div class="btn-icon" style="display:flex; justify-content:center; align-items:center;">
+            <span id="timer">00:00</span>
+        </div>
     </div>
-</div>
 
-<canvas id="canvas" style="display:none;"></canvas>
+    <script>
+        const video = document.getElementById('preview');
+        const recordBtn = document.getElementById('recordBtn');
+        const switchBtn = document.getElementById('switchBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const timerDisplay = document.getElementById('timer');
 
-<script>
-    const v = document.getElementById('video'), s = document.getElementById('shutter'), tDisp = document.getElementById('timer'), thumb = document.getElementById('preview-thumb');
-    let stream, recorder, chunks = [], mode = 'photo', isFront = false, flash = false, lastFileUrl = null, lastFileName = "";
+        let mediaRecorder;
+        let recordedChunks = [];
+        let currentFacingMode = 'environment';
+        let startTime;
+        let timerInterval;
 
-    async function start() {
-        if (stream) stream.getTracks().forEach(t => t.stop());
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: isFront ? "user" : "environment", width: 3840, height: 2160 }, audio: true });
-            v.srcObject = stream;
-        } catch (e) { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); v.srcObject = stream; }
-    }
+        async function initCamera() {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
 
-    function setMode(m) { mode = m; document.getElementById('m-photo').className = m === 'photo' ? 'active' : ''; document.getElementById('m-video').className = m === 'video' ? 'active' : ''; }
+            const constraints = {
+                video: {
+                    width: { ideal: 3840 },
+                    height: { ideal: 2160 },
+                    frameRate: { ideal: 30 },
+                    facingMode: currentFacingMode
+                },
+                audio: {
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    sampleRate: 48000,
+                    channelCount: 2
+                }
+            };
 
-    async function setZ(val, btn) {
-        const track = stream.getVideoTracks()[0];
-        try { await track.applyConstraints({ advanced: [{ zoom: val }] }); } catch(e) { v.style.transform = `scale(${val})`; }
-        document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
-    }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
 
-    async function toggleFlash() { const track = stream.getVideoTracks()[0]; flash = !flash; try { await track.applyConstraints({ advanced: [{ torch: flash }] }); } catch(e) {} }
+                // MediaRecorder Setup
+                const options = { mimeType: 'video/webm;codecs=vp9,opus' };
+                mediaRecorder = new MediaRecorder(stream, options);
 
-    function saveLastFile() {
-        if (!lastFileUrl) return;
-        const a = document.createElement('a'); a.href = lastFileUrl; a.download = lastFileName;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    }
-
-    s.onclick = async () => {
-        if (mode === 'photo') {
-            const c = document.getElementById('canvas');
-            c.width = v.videoWidth; c.height = v.videoHeight;
-            c.getContext('2d').drawImage(v, 0, 0);
-            lastFileUrl = c.toDataURL('image/jpeg', 1.0);
-            lastFileName = `IMG_${Date.now()}.jpg`;
-            thumb.src = lastFileUrl; // Zeige Foto in der Vorschau
-            saveLastFile(); // Versuch eines direkten Speicherns
-        } else {
-            if (recorder && recorder.state === "recording") {
-                recorder.stop(); s.classList.remove('rec'); tDisp.style.display = 'none';
-            } else {
-                chunks = [];
-                recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 25000000 });
-                recorder.ondataavailable = e => chunks.push(e.data);
-                recorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/mp4' });
-                    lastFileUrl = URL.createObjectURL(blob);
-                    lastFileName = `VID_${Date.now()}.mp4`;
-                    // Bei Videos nehmen wir ein Standbild für die Vorschau
-                    const c = document.getElementById('canvas');
-                    c.getContext('2d').drawImage(v, 0, 0);
-                    thumb.src = c.toDataURL('image/jpeg', 0.5);
-                    saveLastFile();
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
                 };
-                recorder.start(); s.classList.add('rec'); tDisp.style.display = 'block';
-                let startT = Date.now();
-                const inv = setInterval(() => {
-                    if (recorder.state !== "recording") { clearInterval(inv); return; }
-                    let d = Math.floor((Date.now() - startT) / 1000);
-                    tDisp.innerText = `${String(Math.floor(d/60)).padStart(2,'0')}:${String(d%60).padStart(2,'0')}`;
-                }, 1000);
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    downloadBtn.href = url;
+                    downloadBtn.style.display = 'block';
+                    stopTimer();
+                };
+
+            } catch (err) {
+                console.error("Kamerafehler:", err);
+                alert("Fehler: " + err.message);
             }
         }
-    };
 
-    function flip() { isFront = !isFront; start(); }
-    window.onload = start;
-</script>
+        // Aufnahme-Logik
+        recordBtn.onclick = () => {
+            if (mediaRecorder.state === "inactive") {
+                recordedChunks = [];
+                mediaRecorder.start();
+                recordBtn.classList.add('recording');
+                downloadBtn.style.display = 'none';
+                startTimer();
+            } else {
+                mediaRecorder.stop();
+                recordBtn.classList.remove('recording');
+            }
+        };
+
+        // Kamera wechseln (Front/Back)
+        switchBtn.onclick = () => {
+            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+            initCamera();
+        };
+
+        // Einfacher Timer
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const seconds = Math.floor((Date.now() - startTime) / 1000);
+                const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const s = (seconds % 60).toString().padStart(2, '0');
+                timerDisplay.textContent = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerDisplay.textContent = "00:00";
+        }
+
+        // Start
+        initCamera();
+    </script>
 </body>
 </html>
