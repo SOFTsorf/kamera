@@ -3,111 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Camera App</title>
+    <title>Ultimate Pro Camera</title>
     <style>
         :root {
-            --strong-blur: blur(35px); /* Starker Blur wie im Screenshot */
-            --glass: rgba(255, 255, 255, 0.15);
+            /* Der starke Blur-Effekt basierend auf deinem Bild */
+            --glass-blur: blur(45px); 
+            --glass-bg: rgba(255, 255, 255, 0.12);
+            --accent: #FFD700;
         }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
-        
-        .preview { position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 1; }
-        #video { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s ease; }
 
-        /* UI-Elemente deutlich kleiner und feiner */
-        .ui-overlay { position: absolute; z-index: 10; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
-        .ui-overlay * { pointer-events: auto; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: #000; color: white; overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
 
-        .top { top: 20px; }
-        .bottom { bottom: 0; padding-bottom: 30px; background: linear-gradient(transparent, rgba(0,0,0,0.6)); }
+        .camera-container {
+            position: relative; width: 100%; height: 100%;
+            display: flex; justify-content: center; overflow: hidden;
+        }
 
-        .pill { background: var(--glass); backdrop-filter: var(--strong-blur); -webkit-backdrop-filter: var(--strong-blur); padding: 6px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); display: flex; gap: 15px; font-size: 11px; font-weight: bold; }
-        
-        .zoom-capsule { margin-bottom: 20px; }
-        .zoom-capsule span { opacity: 0.5; cursor: pointer; padding: 2px 8px; }
-        .zoom-capsule span.active { opacity: 1; color: #FFCC00; background: rgba(255,255,255,0.1); border-radius: 10px; }
+        /* Video Feed - Object-Fit fix gegen Verzerrung */
+        #video {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transition: transform 0.2s ease-out;
+            z-index: 1;
+        }
 
-        .modes { display: flex; gap: 20px; font-size: 10px; font-weight: 900; letter-spacing: 1px; margin-bottom: 25px; text-transform: uppercase; }
-        .modes span { opacity: 0.4; cursor: pointer; }
-        .modes .active { opacity: 1; border-bottom: 2px solid white; padding-bottom: 2px; }
+        /* UI Overlays */
+        .overlay { position: absolute; z-index: 10; width: 100%; pointer-events: none; }
+        .overlay * { pointer-events: auto; }
 
-        .shutter-row { display: flex; align-items: center; justify-content: center; gap: 40px; }
-        .shutter { width: 65px; height: 65px; background: white; border-radius: 50%; border: 4px solid rgba(255,255,255,0.3); cursor: pointer; }
-        .shutter.recording { background: #ff3b30; border-radius: 15px; animation: pulse 1.2s infinite; }
+        .top-bar {
+            top: 30px; display: flex; justify-content: space-around; align-items: center;
+        }
 
-        .small-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--glass); backdrop-filter: var(--strong-blur); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        svg { fill: white; width: 20px; }
+        /* Das Glas-Design für die Pillen/Leisten */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 40px;
+            padding: 10px 20px;
+        }
 
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .bottom-ui {
+            bottom: 0; height: 260px;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* Zoom-Steuerung */
+        .zoom-controls {
+            margin-top: 10px; display: flex; gap: 15px; font-size: 13px; font-weight: bold;
+        }
+        .zoom-controls span { opacity: 0.5; cursor: pointer; padding: 5px 10px; }
+        .zoom-controls span.active { 
+            opacity: 1; color: var(--accent); 
+            background: rgba(255,255,255,0.1); border-radius: 15px; 
+        }
+
+        /* Modus-Leiste */
+        .mode-list {
+            margin-top: 20px; display: flex; gap: 20px; font-size: 11px; font-weight: 800;
+            letter-spacing: 1.2px; text-transform: uppercase;
+        }
+        .mode-list span { opacity: 0.4; }
+        .mode-list .active { opacity: 1; color: var(--accent); }
+
+        /* Haupt-Aktionen */
+        .shutter-row {
+            margin-top: 25px; width: 85%; display: flex; justify-content: space-around; align-items: center;
+        }
+
+        .shutter-btn {
+            width: 75px; height: 75px; background: white; border-radius: 50%;
+            border: 6px solid rgba(255,255,255,0.25); cursor: pointer;
+        }
+        .shutter-btn.is-recording { background: #ff3b30; border-radius: 15px; animation: rec-pulse 1s infinite; }
+
+        .icon-btn {
+            width: 45px; height: 45px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        svg { fill: white; width: 24px; height: 24px; }
+
+        @keyframes rec-pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div class="preview"><video id="video" autoplay playsinline muted></video></div>
+<div class="camera-container">
+    <video id="video" autoplay playsinline muted></video>
 
-<div class="ui-overlay top">
-    <div class="pill"><span>12M</span><span>HDR</span><span>RAW</span></div>
-</div>
-
-<div class="ui-overlay bottom">
-    <div class="pill zoom-capsule">
-        <span onclick="setZ(1, this)">.5</span>
-        <span class="active" onclick="setZ(1.5, this)">1x</span>
-        <span onclick="setZ(3, this)">2</span>
-    </div>
-    
-    <div class="modes">
-        <span>Porträt</span><span class="active" id="m-photo" onclick="setMode('photo')">Foto</span><span id="m-video" onclick="setMode('video')">Video</span><span>Mehr</span>
+    <div class="overlay top-bar">
+        <div class="glass" style="display:flex; gap: 20px; font-size: 12px;">
+            <span>12M</span><span>HDR</span><span>RAW</span>
+        </div>
     </div>
 
-    <div class="shutter-row">
-        <div class="small-btn"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>
-        <div id="shutter" class="shutter"></div>
-        <div class="small-btn" onclick="flip()"><svg viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.41 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.59 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg></div>
+    <div class="overlay bottom-ui">
+        <div class="zoom-controls glass">
+            <span onclick="setZoom(1, this)">.5</span>
+            <span class="active" onclick="setZoom(1.5, this)">1x</span>
+            <span onclick="setZoom(3, this)">2</span>
+        </div>
+
+        <div class="mode-list">
+            <span>FUN</span><span>PORTRÄT</span><span class="active">FOTO</span><span id="vid-mode-text">VIDEO</span>
+        </div>
+
+        <div class="shutter-row">
+            <div class="icon-btn glass"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>
+            
+            <div id="shutter" class="shutter-btn"></div>
+            
+            <div class="icon-btn glass" onclick="flipCamera()"><svg viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.41 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.59 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg></div>
+        </div>
     </div>
 </div>
 
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-    const v = document.getElementById('video'), s = document.getElementById('shutter');
-    let stream, recorder, chunks = [], zoom = 1.5, mode = 'photo', isFront = false;
+    const video = document.getElementById('video');
+    const shutter = document.getElementById('shutter');
+    let stream, recorder, chunks = [];
+    let isFront = false;
+    let currentZoom = 1.5;
 
-    async function start() {
+    // Startet die Kamera mit optimiertem Audio
+    async function startCamera() {
         if (stream) stream.getTracks().forEach(t => t.stop());
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: isFront ? "user" : "environment", width: { ideal: 1920 } },
-            audio: { echoCancellation: true, noiseSuppression: true }
-        });
-        v.srcObject = stream;
-        v.style.transform = `scale(${zoom})`;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: isFront ? "user" : "environment", width: { ideal: 1920 } },
+                audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 48000 }
+            });
+            video.srcObject = stream;
+            video.style.transform = `scale(${currentZoom})`;
+        } catch (e) { alert("Kamera-Fehler: " + e.name); }
     }
 
-    function setZ(l, e) { zoom = l; v.style.transform = `scale(${l})`; document.querySelectorAll('.zoom-capsule span').forEach(s => s.classList.remove('active')); e.classList.add('active'); }
-    function setMode(m) { mode = m; document.getElementById('m-photo').classList.toggle('active', m === 'photo'); document.getElementById('m-video').classList.toggle('active', m === 'video'); }
-    function flip() { isFront = !isFront; start(); }
+    function setZoom(val, el) {
+        currentZoom = val;
+        video.style.transform = `scale(${val})`;
+        document.querySelectorAll('.zoom-controls span').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+    }
 
-    s.onclick = () => {
-        if (mode === 'photo') {
-            const c = document.getElementById('canvas'), ctx = c.getContext('2d');
-            c.width = v.videoWidth; c.height = v.videoHeight;
-            const sw = v.videoWidth/zoom, sh = v.videoHeight/zoom, sx = (v.videoWidth-sw)/2, sy = (v.videoHeight-sh)/2;
-            ctx.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
-            const a = document.createElement('a'); a.href = c.toDataURL('image/jpeg', 0.9); a.download = `IMG_${Date.now()}.jpg`; a.click();
-        } else {
-            if (recorder && recorder.state === "recording") { recorder.stop(); s.classList.remove('recording'); }
-            else {
-                chunks = []; recorder = new MediaRecorder(stream, { mimeType: 'video/mp4;codecs=h264' });
-                recorder.ondataavailable = e => chunks.push(e.data);
-                recorder.onstop = () => {
-                    const b = new Blob(chunks, { type: 'video/mp4' });
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `VID_${Date.now()}.mp4`; a.click();
-                };
-                recorder.start(); s.classList.add('recording');
-            }
+    function flipCamera() { isFront = !isFront; startCamera(); }
+
+    // Shutter-Logik: Kurz = Foto, Lang = Video (oder Modus-abhängig)
+    // Hier vereinfacht: Klick löst Foto aus, Video wird über den Recorder-Status gesteuert
+    shutter.onclick = () => {
+        const isVideoMode = document.getElementById('vid-mode-text').classList.contains('active');
+        if (recorder && recorder.state === "recording") {
+            stopVideo();
+        } else if (chunks.length === 0 && !shutter.classList.contains('is-recording')) {
+            // Wenn man schnell klickt: Foto. Wenn man im "Video-Modus" ist: Video.
+            takePhoto();
         }
     };
-    start();
+
+    // Halten für Video-Aufnahme
+    let holdTimer;
+    shutter.onmousedown = shutter.ontouchstart = () => {
+        holdTimer = setTimeout(startVideo, 500);
+    };
+    shutter.onmouseup = shutter.ontouchend = () => {
+        clearTimeout(holdTimer);
+    };
+
+    function takePhoto() {
+        const c = document.getElementById('canvas');
+        const ctx = c.getContext('2d');
+        c.width = video.videoWidth; c.height = video.videoHeight;
+
+        // Zoom in das Foto rendern
+        const sw = video.videoWidth / currentZoom;
+        const sh = video.videoHeight / currentZoom;
+        const sx = (video.videoWidth - sw) / 2;
+        const sy = (video.videoHeight - sh) / 2;
+
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
+        
+        const a = document.createElement('a');
+        a.href = c.toDataURL('image/jpeg', 0.95);
+        a.download = `IMG_${Date.now()}.jpg`; a.click();
+        video.style.opacity = "0.5"; setTimeout(() => video.style.opacity="1", 100);
+    }
+
+    async function startVideo() {
+        chunks = [];
+        const mime = MediaRecorder.isTypeSupported('video/mp4;codecs=h264') ? 'video/mp4' : 'video/webm';
+        recorder = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 128000 });
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: mime });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `VID_${Date.now()}.mp4`; a.click();
+        };
+        recorder.start();
+        shutter.classList.add('is-recording');
+    }
+
+    function stopVideo() {
+        recorder.stop();
+        shutter.classList.remove('is-recording');
+    }
+
+    startCamera();
 </script>
 </body>
 </html>
