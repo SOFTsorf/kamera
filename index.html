@@ -2,154 +2,189 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UHD Pro Camera</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <title>UHD Camera Pro</title>
     <style>
         :root {
-            --accent: #ff3b30;
-            --bg: #000;
+            --ui-white: rgba(255, 255, 255, 0.9);
+            --ui-bg: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Sperre für Laptops/Desktops */
+        @media (pointer: fine) and (min-width: 1024px) {
+            body { display: flex !important; justify-content: center; align-items: center; background: #000; color: white; height: 100vh; margin: 0; }
+            body * { display: none; }
+            body::after { content: "Diese App ist nur für Mobilgeräte optimiert."; font-size: 20px; display: block; }
         }
 
         body {
             margin: 0;
             padding: 0;
-            background: var(--bg);
+            background: #000;
             color: white;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: Arial, sans-serif;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
+            width: 100vw;
             overflow: hidden;
+            display: flex;
+            flex-direction: row; /* Optimiert für Querformat */
         }
 
-        /* Video Vorschau */
-        #viewport {
-            flex: 1;
+        /* Sucher / Viewport */
+        #camera-view {
+            position: relative;
+            flex-grow: 1;
+            background: #111;
             display: flex;
             justify-content: center;
             align-items: center;
-            position: relative;
-            background: #111;
         }
 
         video {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Füllt den Screen wie eine App */
+            object-fit: cover;
         }
 
-        /* Overlay Infos */
-        #info-overlay {
+        /* Top Bar (im Querformat links oder oben) */
+        .top-icons {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.5);
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            pointer-events: none;
+            top: 10px;
+            right: 20px;
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px black;
         }
 
-        /* Controls Bereich */
-        .controls {
-            height: 160px;
-            background: rgba(0,0,0,0.9);
+        /* Zoom Controls (Mitte unten im Screenshot) */
+        .zoom-controls {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
+            gap: 10px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 30px;
+        }
+        .zoom-btn {
+            background: none;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .zoom-btn.active {
+            background: #444;
+            border-radius: 50%;
+        }
+
+        /* Rechte Steuerungsleiste (Auslöser etc.) */
+        .side-panel {
+            width: 120px;
+            background: black;
+            display: flex;
+            flex-direction: column;
             justify-content: space-around;
             align-items: center;
-            padding-bottom: env(safe-area-inset-bottom);
+            padding: 20px 0;
         }
 
-        /* Aufnahme Button */
-        .record-trigger {
+        /* Auslöser */
+        .shutter-btn {
             width: 70px;
             height: 70px;
-            border-radius: 50%;
             background: white;
+            border-radius: 50%;
+            border: 5px solid #333;
+            cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            border: 4px solid #333;
-            cursor: pointer;
-            transition: all 0.2s;
         }
+        .shutter-btn:active { transform: scale(0.9); }
 
-        .record-trigger .inner {
-            width: 54px;
-            height: 54px;
-            border-radius: 50%;
-            background: var(--accent);
-            transition: all 0.3s;
-        }
-
-        .recording .inner {
-            border-radius: 10px;
-            transform: scale(0.6);
-        }
-
-        /* Funktions Buttons */
-        .btn-icon {
-            background: #222;
-            border: none;
-            color: white;
+        /* QR Preview Kreis (unten links im Screen) */
+        .qr-preview {
             width: 50px;
             height: 50px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 18px;
+            border-radius: 10px;
+            border: 2px solid white;
+            background: url('https://api.qrserver.com/v1/create-qr-code/?size=50x50&data=UHD');
+            background-size: cover;
         }
 
-        #downloadBtn {
-            display: none;
-            background: #4cd964;
-            text-decoration: none;
-            color: white;
-            font-size: 14px;
-            padding: 10px 20px;
-            border-radius: 20px;
+        /* Modus Leiste (unten) */
+        .mode-bar {
             position: absolute;
-            bottom: 180px;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
+        .mode-item.active { color: #f8d02e; }
+
+        #timer { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); color: red; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
 
-    <div id="viewport">
-        <div id="info-overlay">UHD 30FPS | High-Res Audio</div>
+    <div id="camera-view">
+        <div id="timer">REC 00:00</div>
+        
+        <div class="top-icons">
+            <span>⚡ Off</span>
+            <span>12M</span>
+            <span>(9:16)</span>
+            <span>⚙️</span>
+        </div>
+
         <video id="preview" autoplay playsinline muted></video>
-        <a id="downloadBtn" download="UHD_Video.webm">Video Speichern</a>
+
+        <div class="zoom-controls">
+            <button class="zoom-btn">.5</button>
+            <button class="zoom-btn active">1x</button>
+            <button class="zoom-btn">2</button>
+        </div>
+
+        <div class="mode-bar">
+            <div class="mode-item">Fun</div>
+            <div class="mode-item">Porträt</div>
+            <div class="mode-item active">Foto</div>
+            <div class="mode-item">Video</div>
+            <div class="mode-item">Mehr</div>
+        </div>
     </div>
 
-    <div class="controls">
-        <button class="btn-icon" id="switchBtn">🔄</button>
+    <div class="side-panel">
+        <div class="qr-preview"></div>
         
-        <div class="record-trigger" id="recordBtn">
-            <div class="inner"></div>
-        </div>
-
-        <div class="btn-icon" style="display:flex; justify-content:center; align-items:center;">
-            <span id="timer">00:00</span>
-        </div>
+        <div class="shutter-btn" id="actionBtn"></div>
+        
+        <button id="switchBtn" style="background:none; border:none; color:white; font-size:24px;">🔄</button>
     </div>
 
     <script>
         const video = document.getElementById('preview');
-        const recordBtn = document.getElementById('recordBtn');
+        const actionBtn = document.getElementById('actionBtn');
         const switchBtn = document.getElementById('switchBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
         const timerDisplay = document.getElementById('timer');
 
         let mediaRecorder;
         let recordedChunks = [];
+        let isRecording = false;
         let currentFacingMode = 'environment';
-        let startTime;
-        let timerInterval;
 
-        async function initCamera() {
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
-            }
-
+        async function startApp() {
+            // UHD 30 FPS Anforderung
             const constraints = {
                 video: {
                     width: { ideal: 3840 },
@@ -159,9 +194,7 @@
                 },
                 audio: {
                     echoCancellation: false,
-                    noiseSuppression: false,
-                    sampleRate: 48000,
-                    channelCount: 2
+                    sampleRate: 48000
                 }
             };
 
@@ -169,66 +202,64 @@
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
 
-                // MediaRecorder Setup
-                const options = { mimeType: 'video/webm;codecs=vp9,opus' };
-                mediaRecorder = new MediaRecorder(stream, options);
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: 'video/webm;codecs=vp9,opus'
+                });
 
-                mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) recordedChunks.push(e.data);
-                };
-
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    downloadBtn.href = url;
-                    downloadBtn.style.display = 'block';
-                    stopTimer();
-                };
+                mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
+                mediaRecorder.onstop = saveVideo;
 
             } catch (err) {
-                console.error("Kamerafehler:", err);
-                alert("Fehler: " + err.message);
+                alert("Kamera-Zugriff verweigert oder UHD nicht unterstützt.");
             }
         }
 
-        // Aufnahme-Logik
-        recordBtn.onclick = () => {
-            if (mediaRecorder.state === "inactive") {
+        function saveVideo() {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'UHD_Video.webm';
+            a.click();
+        }
+
+        actionBtn.onclick = () => {
+            if (!isRecording) {
                 recordedChunks = [];
                 mediaRecorder.start();
-                recordBtn.classList.add('recording');
-                downloadBtn.style.display = 'none';
+                isRecording = true;
+                actionBtn.style.background = "red";
+                timerDisplay.style.display = "block";
                 startTimer();
             } else {
                 mediaRecorder.stop();
-                recordBtn.classList.remove('recording');
+                isRecording = false;
+                actionBtn.style.background = "white";
+                timerDisplay.style.display = "none";
+                stopTimer();
             }
         };
 
-        // Kamera wechseln (Front/Back)
         switchBtn.onclick = () => {
             currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-            initCamera();
+            startApp();
         };
 
-        // Einfacher Timer
+        // Timer Logik
+        let timerInt;
         function startTimer() {
-            startTime = Date.now();
-            timerInterval = setInterval(() => {
-                const seconds = Math.floor((Date.now() - startTime) / 1000);
-                const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-                const s = (seconds % 60).toString().padStart(2, '0');
-                timerDisplay.textContent = `${m}:${s}`;
+            let s = 0;
+            timerInt = setInterval(() => {
+                s++;
+                let mins = Math.floor(s/60).toString().padStart(2,'0');
+                let secs = (s%60).toString().padStart(2,'0');
+                timerDisplay.innerText = `REC ${mins}:${secs}`;
             }, 1000);
         }
+        function stopTimer() { clearInterval(timerInt); }
 
-        function stopTimer() {
-            clearInterval(timerInterval);
-            timerDisplay.textContent = "00:00";
-        }
-
-        // Start
-        initCamera();
+        // Initialer Start
+        startApp();
     </script>
 </body>
 </html>
