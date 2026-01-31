@@ -3,155 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Profi Camera WebApp</title>
+    <title>Pro Camera Clone</title>
     <style>
-        :root {
-            --bg-color: #121212;
-            --accent: #ff3b30;
-            --control-bg: rgba(0, 0, 0, 0.6);
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: white;
+        /* CSS DESIGN */
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background: #000;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden; /* Verhindert Scrollen am Handy */
-            height: 100vh;
+            color: white;
+            overflow: hidden;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
         }
 
-        /* Video Container */
-        .camera-view {
+        .app-container {
             position: relative;
-            flex-grow: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
+            width: 100%;
+            max-width: 500px; /* Begrenzung für Desktop-Ansicht */
+            height: 100%;
             background: #000;
         }
 
+        /* Live Video Hintergrund */
         #video {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Füllt den Bildschirm aus */
-            transition: filter 0.2s;
+            object-fit: cover;
         }
 
-        /* Steuerungseinheit */
-        .controls {
-            padding: 20px;
-            background: var(--bg-color);
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+        /* Glassmorphism / Blur Effekt */
+        .blur-ui {
+            background: rgba(40, 40, 40, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 50px;
+            display: flex;
             align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .slider-box {
+        /* Obere Leiste */
+        .top-bar {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Zoom Auswahl (Die kleine Pille in der Mitte) */
+        .zoom-controls {
+            position: absolute;
+            bottom: 220px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px 15px;
+            gap: 15px;
+            font-size: 12px;
+        }
+
+        .zoom-controls span {
+            opacity: 0.7;
+        }
+
+        .zoom-controls span.active {
+            opacity: 1;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        /* Untere Haupt-Steuerung */
+        .bottom-ui {
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-        }
-
-        label {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #888;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            accent-color: var(--accent);
-        }
-
-        /* Buttons */
-        .button-row {
-            grid-column: span 2;
-            display: flex;
-            justify-content: space-around;
             align-items: center;
-            padding-top: 10px;
+            gap: 30px;
         }
 
-        button {
-            border: none;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 50px;
-            font-weight: bold;
+        .main-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            width: 100%;
+        }
+
+        /* Auslöser (Shutter) */
+        .shutter-btn {
+            width: 75px;
+            height: 75px;
+            background: white;
+            border-radius: 50%;
+            border: 5px solid rgba(255, 255, 255, 0.3);
             cursor: pointer;
             transition: transform 0.1s;
         }
 
-        #switch {
-            background: #333;
-        }
-
-        #snap {
-            background: white;
-            color: black;
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            border: 5px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0; /* Nur Kreis-Optik */
-        }
-
-        #snap:active {
+        .shutter-btn:active {
             transform: scale(0.9);
-            background: var(--accent);
         }
 
-        /* Canvas verstecken */
-        #canvas {
-            display: none;
+        /* Vorschau & Kamerawechsel */
+        .thumbnail, .switch-cam {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            font-size: 20px;
         }
+
+        /* Modus Auswahl (FOTO, VIDEO etc.) */
+        .mode-selector {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .mode-selector span { opacity: 0.6; }
+        .mode-selector span.active { color: #FFCC00; opacity: 1; }
+
     </style>
 </head>
 <body>
 
-    <div class="camera-view">
+    <div class="app-container">
         <video id="video" autoplay playsinline></video>
-        <canvas id="canvas"></canvas>
-    </div>
+        <canvas id="canvas" style="display:none;"></canvas>
 
-    <div class="controls">
-        <div class="slider-box">
-            <label for="zoom">Zoom</label>
-            <input type="range" id="zoom" min="1" max="5" step="0.1" value="1">
-        </div>
-        
-        <div class="slider-box">
-            <label for="blur">Blur</label>
-            <input type="range" id="blur" min="0" max="20" step="1" value="0">
+        <div class="top-bar blur-ui">
+            <span>⚡ 12M</span>
+            <span>HDR 🌙</span>
         </div>
 
-        <div class="button-row">
-            <button id="switch">Wechseln</button>
-            <button id="snap">Foto</button>
-            <div style="width: 80px;"></div> </div>
+        <div class="zoom-controls blur-ui">
+            <span>.5</span>
+            <span class="active">1x</span>
+            <span>2</span>
+        </div>
+
+        <div class="bottom-ui">
+            <div class="mode-selector">
+                <span>FUN</span>
+                <span>PORTRÄT</span>
+                <span class="active">FOTO</span>
+                <span>VIDEO</span>
+                <span>MEHR</span>
+            </div>
+
+            <div class="main-controls">
+                <div class="thumbnail blur-ui">🖼️</div>
+                <button id="snap" class="shutter-btn"></button>
+                <div class="switch-cam blur-ui" onclick="toggleCamera()">🔄</div>
+            </div>
+        </div>
     </div>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
-        const snapBtn = document.getElementById('snap');
-        const switchBtn = document.getElementById('switch');
-        const blurInput = document.getElementById('blur');
-        const zoomInput = document.getElementById('zoom');
-
+        const snap = document.getElementById('snap');
         let currentStream;
-        let useFrontCamera = false; // Meistens ist die Rückkamera (environment) besser
+        let useFrontCamera = false;
 
-        async function initCamera() {
+        // Kamera starten
+        async function startCamera() {
             if (currentStream) {
                 currentStream.getTracks().forEach(track => track.stop());
             }
@@ -161,64 +188,48 @@
                     facingMode: useFrontCamera ? "user" : "environment",
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
-                }
+                },
+                audio: false
             };
 
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = currentStream;
             } catch (err) {
-                alert("Kamera-Fehler: " + err.message);
+                console.error("Kamerafehler: ", err);
+                alert("Kamera konnte nicht gestartet werden. Bitte HTTPS nutzen!");
             }
         }
 
-        // Live Blur Effekt
-        blurInput.addEventListener('input', () => {
-            video.style.filter = `blur(${blurInput.value}px)`;
-        });
-
-        // Digitaler Zoom Effekt
-        zoomInput.addEventListener('input', () => {
-            video.style.transform = `scale(${zoomInput.value})`;
-        });
-
-        // Kamera umschalten
-        switchBtn.addEventListener('click', () => {
+        // Kamera wechseln (Front/Back)
+        function toggleCamera() {
             useFrontCamera = !useFrontCamera;
-            initCamera();
-        });
+            startCamera();
+        }
 
-        // Foto aufnehmen & Download
-        snapBtn.addEventListener('click', () => {
-            const ctx = canvas.getContext('2d');
-            
-            // Canvas Größe an Video anpassen
+        // Foto aufnehmen & Herunterladen
+        snap.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
 
-            // Zoom-Berechnung für das Foto
-            const z = parseFloat(zoomInput.value);
-            const w = canvas.width;
-            const h = canvas.height;
+            // Bild zeichnen
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Blur auf Canvas anwenden
-            ctx.filter = `blur(${blurInput.value}px)`;
-
-            // Bild zeichnen (mit Zoom-Ausschnitt)
-            ctx.drawImage(video, 
-                (w - w/z)/2, (h - h/z)/2, w/z, h/z, // Source (Ausschnitt)
-                0, 0, w, h // Destination (Volle Größe)
-            );
-
-            // Download Trigger
+            // Download-Link generieren
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
             const link = document.createElement('a');
-            link.download = `cam-capture-${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png');
+            link.download = `IMG_${new Date().getTime()}.jpg`;
+            link.href = dataUrl;
             link.click();
+            
+            // Kleiner Blitz-Effekt
+            video.style.opacity = "0.5";
+            setTimeout(() => video.style.opacity = "1", 100);
         });
 
-        // Start
-        initCamera();
+        // Initialisierung
+        startCamera();
     </script>
 </body>
 </html>
